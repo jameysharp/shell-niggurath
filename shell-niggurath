@@ -1,0 +1,38 @@
+#!/usr/bin/python
+from gi.repository import Gtk, Vte, GLib
+import os
+
+class MyWindow(Gtk.Window):
+    def __init__(self):
+        Gtk.Window.__init__(self, title="Shell-Niggurath")
+
+        self.entry = Gtk.Entry()
+        self.entry.connect("activate", self.on_command_run)
+        self.add(self.entry)
+
+    def on_command_run(self, widget):
+        VteWindow(widget.get_text()).show_all()
+        widget.set_text("")
+
+class VteWindow(Gtk.Window):
+    def __init__(self, command):
+        Gtk.Window.__init__(self, title=command)
+
+        dark_young = Vte.Terminal()
+        dark_young.fork_command_full(
+            Vte.PtyFlags.DEFAULT,
+            os.environ['HOME'],
+            ["/bin/sh", "-c", command],
+            [],
+            GLib.SpawnFlags.DO_NOT_REAP_CHILD,
+            None,
+            None
+        )
+
+        dark_young.connect("child-exited", lambda widget: self.destroy())
+        self.add(dark_young)
+
+win = MyWindow()
+win.connect("delete-event", Gtk.main_quit)
+win.show_all()
+Gtk.main()
