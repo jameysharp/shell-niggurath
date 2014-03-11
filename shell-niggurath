@@ -5,18 +5,33 @@ import os
 class MyWindow(Gtk.Window):
     def __init__(self):
         Gtk.Window.__init__(self, title="Shell-Niggurath")
+        self.thousand_young = []
 
         self.entry = Gtk.Entry()
         self.entry.connect("activate", self.on_command_run)
         self.add(self.entry)
 
     def on_command_run(self, widget):
-        VteWindow(widget.get_text()).show_all()
+        command = widget.get_text()
         widget.set_text("")
+        if command == "jobs":
+            for job_id, vte in enumerate(self.thousand_young):
+                if vte is not None:
+                    print "%{0}: {1}".format(job_id, vte.get_command())
+            return
+
+        vte = VteWindow(command)
+        self.thousand_young.append(vte)
+        job_id = len(self.thousand_young)
+        def job_done(widget):
+            self.thousand_young[job_id - 1] = None
+        vte.connect("destroy", job_done)
+        vte.show_all()
 
 class VteWindow(Gtk.Window):
     def __init__(self, command):
         Gtk.Window.__init__(self, title=command)
+        self.command = command
 
         dark_young = Vte.Terminal()
         dark_young.fork_command_full(
@@ -31,6 +46,9 @@ class VteWindow(Gtk.Window):
 
         dark_young.connect("child-exited", lambda widget: self.destroy())
         self.add(dark_young)
+
+    def get_command(self):
+        return self.command
 
 win = MyWindow()
 win.connect("delete-event", Gtk.main_quit)
