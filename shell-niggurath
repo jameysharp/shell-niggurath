@@ -34,6 +34,7 @@ class VteWindow(Gtk.Window):
         self.command = command
 
         dark_young = Vte.Terminal()
+        dark_young.set_scrollback_lines(-1)
         dark_young.fork_command_full(
             Vte.PtyFlags.DEFAULT,
             os.environ['HOME'],
@@ -44,7 +45,21 @@ class VteWindow(Gtk.Window):
             None
         )
 
-        dark_young.connect("child-exited", lambda widget: self.destroy())
+        def on_exit(widget):
+            column, endrow = widget.get_cursor_position()
+            print repr(widget.get_text_range(0, 0, endrow, column, None, None)[0])
+
+            exit_status = widget.get_child_exit_status()
+            if os.WIFEXITED(exit_status):
+                print "exit", os.WEXITSTATUS(exit_status)
+            elif os.WIFSIGNALED(exit_status):
+                print "killed by signal", os.WTERMSIG(exit_status)
+            else:
+                print "it's a murder mystery"
+
+            self.destroy()
+
+        dark_young.connect("child-exited", on_exit)
         self.add(dark_young)
 
     def get_command(self):
